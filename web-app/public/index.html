@@ -1,37 +1,81 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Web App Home</title>
+  <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; }
-    header { padding: 24px; background: #0f172a; color: #fff; }
-    main { padding: 32px; max-width: 880px; margin: 0 auto; }
-    .card { background: rgba(0,0,0,0.05); padding: 20px; border-radius: 12px; }
-    a.btn { display: inline-block; margin-top: 16px; padding: 10px 14px; border-radius: 8px; background: #2563eb; color: #fff; text-decoration: none; }
-    footer { padding: 24px; text-align: center; opacity: 0.7; }
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+    }
+
+    header {
+      padding: 24px;
+      background: #0f172a;
+      color: #fff;
+    }
+
+    main {
+      padding: 32px;
+      max-width: 880px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    footer {
+      padding: 24px;
+      text-align: center;
+      opacity: 0.7;
+    }
   </style>
 </head>
+
 <body>
   <header>
-    <h1>Welcome to Web App</h1>
-    <p>Node.js + Express static site</p>
+    <h1>SyncroVibe</h1>
+    <p>Seamless bank‑linked payments</p>
   </header>
   <main>
     <section class="card">
-      <h2>Home Page</h2>
-      <p>If you can see this, your Express server is correctly serving static files from the <code>/public/</code> folder and routing <code>/</code> to <code>index.html</code>.</p>
-      <a class="btn" href="/health">Check Health Endpoint</a>
+      <h2>Link your bank to pay</h2>
+      <p>SyncroVibe lets you securely link a bank account with ease. The integration ensures credentials are never
+        stored, shared, or exposed — maintaining strict privacy and security standards.</p>
+      <button id="link-bank-btn" class="btn" onclick="linkBank()">Link a Bank</button>
     </section>
   </main>
   <footer>
-    <small>&copy; <span id="year"></span> Web App</small>
+    <small>&copy; <span id="year"></span> SyncroVibe</small>
   </footer>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+    function linkBank() {
+      // TODO: Replace with actual bank-link flow implementation
+      console.log('Link a Bank clicked');
+      alert('Link Bank action triggered. Integrate your flow here.');
+    }
   </script>
 </body>
+
 </html>

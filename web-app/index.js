@@ -7,10 +7,6 @@ const PORT = process.env.PORT || 3000;
 // Serve static assets from /public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Basic health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
-});
 
 // Serve index.html at root
 app.get('/', (req, res) => {
