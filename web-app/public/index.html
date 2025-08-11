@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Web App Home</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; }
+    header { padding: 24px; background: #0f172a; color: #fff; }
+    main { padding: 32px; max-width: 880px; margin: 0 auto; }
+    .card { background: rgba(0,0,0,0.05); padding: 20px; border-radius: 12px; }
+    a.btn { display: inline-block; margin-top: 16px; padding: 10px 14px; border-radius: 8px; background: #2563eb; color: #fff; text-decoration: none; }
+    footer { padding: 24px; text-align: center; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Welcome to Web App</h1>
+    <p>Node.js + Express static site</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Home Page</h2>
+      <p>If you can see this, your Express server is correctly serving static files from the <code>/public/</code> folder and routing <code>/</code> to <code>index.html</code>.</p>
+      <a class="btn" href="/health">Check Health Endpoint</a>
+    </section>
+  </main>
+  <footer>
+    <small>&copy; <span id="year"></span> Web App</small>
+  </footer>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
