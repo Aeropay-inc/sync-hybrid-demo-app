@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
+  <!-- Aerosync Widget -->
+  <script src="/aerosync-widget-v2.1.2.js" defer></script>
   <style>
     :root {
       color-scheme: light dark;
@@ -63,17 +65,58 @@
       <p>SyncroVibe lets you securely link a bank account with ease. The integration ensures credentials are never
         stored, shared, or exposed — maintaining strict privacy and security standards.</p>
       <button id="link-bank-btn" class="btn" onclick="linkBank()">Link a Bank</button>
+      <!-- This div is where the AeroSync widget iframe will be embedded -->
+      <!-- Make sure the 'id' here matches the 'elementId' passed during initialization -->
+      <div id="widgetId"></div>
     </section>
   </main>
   <footer>
-    <small>&copy; <span id="year"></span> SyncroVibe</small>
+    <small>&copy; 2025 SyncroVibe</small>
   </footer>
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
     function linkBank() {
-      // TODO: Replace with actual bank-link flow implementation
-      console.log('Link a Bank clicked');
-      alert('Link Bank action triggered. Integrate your flow here.');
+      try {
+        const widgetControls = window?.aerosync?.initWidget({
+          elementId: 'widgetId', // ID of the DOM element where the widget will be attached
+          iframeTitle: 'Connect', // Title for the iframe
+          environment: 'qa', // Widget environment (e.g., 'sandbox' or 'production')
+          token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxZmU2OGFkOC1hZTZiLTQ4YjMtYmUyNy0wMDliMmE2YTM1YTMiLCJleHAiOjE3NTQ5NTA3MDUsInVzZXJJZCI6Ijg3NGY1YmY4MGJmMDRhMWI5NTdjNDFmNGY1YjRhNDI0IiwiY29ubmVjdGlvbklkIjoiODc0ZjViZjgwYmYwNGExYjk1N2M0MWY0ZjViNGE0MjQiLCJhZXJvUGFzc1VzZXJVdWlkIjoiZjg3M2Q0ZGEtZGY0YS00NmQzLThjYmUtMTlkZjFhZTQ2ZDMxIiwidXNlclBhc3N3b3JkIjoiYjEwY2FkOGQzNGE3NDE3Y2JmZjJlZDgzMDBiMzZkMDgiLCJDbGllbnRJZCI6IjI0Y2Q3ZjE5LWJjYzktNDY1ZC05ZTUzLTg4NTc0YTFhZDcwZiIsIkNsaWVudE5hbWUiOiJRQV90ZXN0IDA1LTIwLTI1Iiwic2Vzc2lvbklkIjoiZWE0ODg5YTkzZjE3NDZkOTliZTMxNGU2YTNlNGZlNmEifQ.mX5-jOxGvWXhX7fshfftineWDBOS0ExQpjZj2D2_mIc', //  AeroSync token (Important: Do not use an AeroPay token)
+          aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
+          consumerId: 'f873d4da-df4a-46d3-8cbe-19df1ae46d31', // Aeorsync configuration ID (optional)
+
+          // Event callback for various widget lifecycle events
+          onEvent: function (event) {
+            console.log('onEvent', JSON.stringify(event))
+          },
+
+          // Called when the widget is fully loaded
+          onLoad: function () {
+            console.log('Sync onload')
+          },
+
+          // Called on successful sync completion
+          onSuccess: function (event) {
+            console.log('onSuccess', JSON.stringify(event))
+          },
+
+          // Called when the widget is closed
+          onClose: function () {
+            console.log('Sync onclose')
+          },
+
+          // Called when an error occurs
+          onError: function (error) {
+            console.log('onError', error)
+          }
+        })
+
+        // Launch the widget UI
+        if (widgetControls) {
+          widgetControls.launch()
+        }
+      } catch (error) {
+        console.error('Error initializing widget:', error)
+      }
     }
   </script>
 </body>
