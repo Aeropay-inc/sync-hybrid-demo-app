@@ -37,14 +37,31 @@
     }
 
     .btn {
-      display: inline-block;
+      display: inline-flex;
+      flex-direction: row; /* Icon and text on the same line */
+      align-items: center; /* Vertically center icon and text */
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap; /* Prevent text from wrapping to next line */
       margin-top: 16px;
-      padding: 10px 14px;
+      padding: 14px 24px; /* Increase size */
       border-radius: 8px;
-      background: #2563eb;
+      background: #7c3aed; /* Violet 600 */
       color: #fff;
       text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 200px; /* Increase width */
+      border: none;
+      cursor: pointer;
     }
+
+    .btn:hover {
+      background: #6d28d9; /* Darker violet on hover */
+    }
+
+    /* Ensure the icon aligns nicely with the text */
+    .btn svg { align-self: center; }
 
     footer {
       padding: 24px;
@@ -64,7 +81,13 @@
       <h2>Link your bank to pay</h2>
       <p>SyncroVibe lets you securely link a bank account with ease. The integration ensures credentials are never
         stored, shared, or exposed — maintaining strict privacy and security standards.</p>
-      <button id="link-bank-btn" class="btn" onclick="linkBank()">Link a Bank</button>
+      <button id="link-bank-btn" class="btn" onclick="linkBank()">
+        <!-- Bank icon (inline SVG) -->
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 10.5L12 5l9 5.5v1.5H3V10.5zM5 12v7h2v-7H5zm4 0v7h2v-7H9zm4 0v7h2v-7h-2zm4 0v7h2v-7h-2zM3 21h18v-2H3v2z" fill="currentColor"/>
+        </svg>
+        <span>Link a Bank</span>
+      </button>
       <!-- This div is where the AeroSync widget iframe will be embedded -->
       <!-- Make sure the 'id' here matches the 'elementId' passed during initialization -->
       <div id="widgetId"></div>
@@ -80,7 +103,7 @@
           elementId: 'widgetId', // ID of the DOM element where the widget will be attached
           iframeTitle: 'Connect', // Title for the iframe
           environment: 'qa', // Widget environment (e.g., 'sandbox' or 'production')
-          token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxZmU2OGFkOC1hZTZiLTQ4YjMtYmUyNy0wMDliMmE2YTM1YTMiLCJleHAiOjE3NTQ5NTA3MDUsInVzZXJJZCI6Ijg3NGY1YmY4MGJmMDRhMWI5NTdjNDFmNGY1YjRhNDI0IiwiY29ubmVjdGlvbklkIjoiODc0ZjViZjgwYmYwNGExYjk1N2M0MWY0ZjViNGE0MjQiLCJhZXJvUGFzc1VzZXJVdWlkIjoiZjg3M2Q0ZGEtZGY0YS00NmQzLThjYmUtMTlkZjFhZTQ2ZDMxIiwidXNlclBhc3N3b3JkIjoiYjEwY2FkOGQzNGE3NDE3Y2JmZjJlZDgzMDBiMzZkMDgiLCJDbGllbnRJZCI6IjI0Y2Q3ZjE5LWJjYzktNDY1ZC05ZTUzLTg4NTc0YTFhZDcwZiIsIkNsaWVudE5hbWUiOiJRQV90ZXN0IDA1LTIwLTI1Iiwic2Vzc2lvbklkIjoiZWE0ODg5YTkzZjE3NDZkOTliZTMxNGU2YTNlNGZlNmEifQ.mX5-jOxGvWXhX7fshfftineWDBOS0ExQpjZj2D2_mIc', //  AeroSync token (Important: Do not use an AeroPay token)
+          token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJjMTViY2VkMy01ZTJjLTQwNWMtOWVlNi1hMWUxYmMxNGNhZmQiLCJleHAiOjE3NTQ5NTM2NDIsInVzZXJJZCI6ImIzMmFmZmIyZjA3YjRiOTg5YzRkOTEzNzRhMzRiMjAwIiwiY29ubmVjdGlvbklkIjoiYjMyYWZmYjJmMDdiNGI5ODljNGQ5MTM3NGEzNGIyMDAiLCJhZXJvUGFzc1VzZXJVdWlkIjoiZjg3M2Q0ZGEtZGY0YS00NmQzLThjYmUtMTlkZjFhZTQ2ZDMxIiwidXNlclBhc3N3b3JkIjoiMTI3NWVjYjM0MzYzNGM0N2JhOTQ2ODYwNjdmNDg4ODEiLCJDbGllbnRJZCI6IjI0Y2Q3ZjE5LWJjYzktNDY1ZC05ZTUzLTg4NTc0YTFhZDcwZiIsIkNsaWVudE5hbWUiOiJRQV90ZXN0IDA1LTIwLTI1Iiwic2Vzc2lvbklkIjoiZjQ0OTI5NzA3MDNiNDRkYzhlNGU3OWIyZjI4OTZmODAifQ.Bx9PDjWCTwdTcHnAxqafRiQbdJb0wJGHBqhqXdwox-I', //  AeroSync token (Important: Do not use an AeroPay token)
           aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
           consumerId: 'f873d4da-df4a-46d3-8cbe-19df1ae46d31', // Aeorsync configuration ID (optional)
 
