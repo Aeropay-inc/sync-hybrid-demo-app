@@ -7,7 +7,7 @@
   <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
   <!-- Aerosync Widget -->
-  <script src="/aerosync-widget-v2.1.2.js" defer></script>
+  <script src="/aerosync-widget-v1.1.3.js" defer></script>
   <style>
     :root {
       background-color: #fff;
@@ -109,19 +109,40 @@
     <small>&copy; 2025 SyncroVibe</small>
   </footer>
   <script>
+    // Read browserType from query params and expose globally for reuse
+    (function () {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const raw = (params.get('browserType') || '').toLowerCase();
+        const allowed = raw === 'out-of-app' ? 'out-of-app' : 'in-app';
+        // Save globally so other functions in this file can use it
+        window.browserType = allowed;
+        console.log('browserType:', window.browserType);
+      } catch (e) {
+        // Fallback if something goes wrong
+        window.browserType = 'in-app';
+      }
+    })();
+
     function linkBank() {
       try {
         const widgetControls = window?.aerosync?.initWidget({
           elementId: 'widgetId', // ID of the DOM element where the widget will be attached
           iframeTitle: 'Connect', // Title for the iframe
           environment: 'qa', // Widget environment (e.g., 'sandbox' or 'production')
-          token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJjMTViY2VkMy01ZTJjLTQwNWMtOWVlNi1hMWUxYmMxNGNhZmQiLCJleHAiOjE3NTQ5NTM2NDIsInVzZXJJZCI6ImIzMmFmZmIyZjA3YjRiOTg5YzRkOTEzNzRhMzRiMjAwIiwiY29ubmVjdGlvbklkIjoiYjMyYWZmYjJmMDdiNGI5ODljNGQ5MTM3NGEzNGIyMDAiLCJhZXJvUGFzc1VzZXJVdWlkIjoiZjg3M2Q0ZGEtZGY0YS00NmQzLThjYmUtMTlkZjFhZTQ2ZDMxIiwidXNlclBhc3N3b3JkIjoiMTI3NWVjYjM0MzYzNGM0N2JhOTQ2ODYwNjdmNDg4ODEiLCJDbGllbnRJZCI6IjI0Y2Q3ZjE5LWJjYzktNDY1ZC05ZTUzLTg4NTc0YTFhZDcwZiIsIkNsaWVudE5hbWUiOiJRQV90ZXN0IDA1LTIwLTI1Iiwic2Vzc2lvbklkIjoiZjQ0OTI5NzA3MDNiNDRkYzhlNGU3OWIyZjI4OTZmODAifQ.Bx9PDjWCTwdTcHnAxqafRiQbdJb0wJGHBqhqXdwox-I', //  AeroSync token (Important: Do not use an AeroPay token)
-          aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
-          consumerId: 'f873d4da-df4a-46d3-8cbe-19df1ae46d31', // Aeorsync configuration ID (optional)
-
+          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJiOTQ4YTNkMGMzNzY0NmZhYjY1M2RmNjgyM2JmMTZmNCIsInVzZXJQYXNzd29yZCI6IjhiMzJhMTlhNDNkNjQyYTg5YjE3ZGFiMmE5MzEzOGE5IiwiQ2xpZW50SWQiOiJlMDU5YzE2OS1lNWRkLTRlN2UtYmY5ZC0xZWU3NWEzOTU0ZjMiLCJDbGllbnROYW1lIjoiU3ludGhldGljIFRlc3RpbmciLCJzZXNzaW9uSWQiOiIxNDQ2YTMxZjQ3YTY0NjcyYTcwZWJkZjA0M2RhMWE1MCJ9.8tPsVqHmn_Qy_KzpCGxV3GQSQniwbFf36BGvrrj8HAI', //  AeroSync token (Important: Do not use an AeroPay token)
+          // aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
+          // consumerId: 'XXXX', // Aeorsync configuration ID (optional)
+          handleOAuthManually: true,
           // Event callback for various widget lifecycle events
           onEvent: function (event) {
             console.log('onEvent', JSON.stringify(event))
+            if (
+              event?.payload?.pageTitle === "launchExternalWindow" &&
+              event?.payload?.onLoadApi
+            ) {
+              console.log("launchExternalWindow event received")
+            }
           },
 
           // Called when the widget is fully loaded
