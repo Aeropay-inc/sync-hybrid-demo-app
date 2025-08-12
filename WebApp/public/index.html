@@ -10,7 +10,7 @@
   <script src="/aerosync-widget-v2.1.2.js" defer></script>
   <style>
     :root {
-      color-scheme: light dark;
+      background-color: #fff;
     }
 
     body {
@@ -38,30 +38,39 @@
 
     .btn {
       display: inline-flex;
-      flex-direction: row; /* Icon and text on the same line */
-      align-items: center; /* Vertically center icon and text */
+      flex-direction: row;
+      /* Icon and text on the same line */
+      align-items: center;
+      /* Vertically center icon and text */
       justify-content: center;
       gap: 8px;
-      white-space: nowrap; /* Prevent text from wrapping to next line */
+      white-space: nowrap;
+      /* Prevent text from wrapping to next line */
       margin-top: 16px;
-      padding: 14px 24px; /* Increase size */
+      padding: 14px 24px;
+      /* Increase size */
       border-radius: 8px;
-      background: #7c3aed; /* Violet 600 */
+      background: #7c3aed;
+      /* Violet 600 */
       color: #fff;
       text-decoration: none;
       font-size: 16px;
       font-weight: 600;
-      min-width: 200px; /* Increase width */
+      min-width: 200px;
+      /* Increase width */
       border: none;
       cursor: pointer;
     }
 
     .btn:hover {
-      background: #6d28d9; /* Darker violet on hover */
+      background: #6d28d9;
+      /* Darker violet on hover */
     }
 
     /* Ensure the icon aligns nicely with the text */
-    .btn svg { align-self: center; }
+    .btn svg {
+      align-self: center;
+    }
 
     footer {
       padding: 24px;
@@ -83,8 +92,11 @@
         stored, shared, or exposed — maintaining strict privacy and security standards.</p>
       <button id="link-bank-btn" class="btn" onclick="linkBank()">
         <!-- Bank icon (inline SVG) -->
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 10.5L12 5l9 5.5v1.5H3V10.5zM5 12v7h2v-7H5zm4 0v7h2v-7H9zm4 0v7h2v-7h-2zm4 0v7h2v-7h-2zM3 21h18v-2H3v2z" fill="currentColor"/>
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M3 10.5L12 5l9 5.5v1.5H3V10.5zM5 12v7h2v-7H5zm4 0v7h2v-7H9zm4 0v7h2v-7h-2zm4 0v7h2v-7h-2zM3 21h18v-2H3v2z"
+            fill="currentColor" />
         </svg>
         <span>Link a Bank</span>
       </button>
