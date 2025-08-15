@@ -9,23 +9,23 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 
-type BrowserType = 'in-app' | 'out-of-app';
+type WorkflowType = 'in-app' | 'out-of-app';
 
 type RootStackParamList = {
   Home: undefined;
-  PaymentWebView: { browserType: BrowserType };
+  PaymentWebView: { workflow: WorkflowType };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeScreen({ navigation }: { navigation: any }) {
-  const [browserType, setBrowserType] = useState<BrowserType>('in-app');
+  const [workflow, setWorkflow] = useState<WorkflowType>('in-app');
 
-  const Radio = ({ label, value }: { label: string; value: BrowserType }) => {
-    const selected = browserType === value;
+  const Radio = ({ label, value }: { label: string; value: WorkflowType }) => {
+    const selected = workflow === value;
     return (
       <Pressable
-        onPress={() => setBrowserType(value)}
+        onPress={() => setWorkflow(value)}
         style={({ pressed }) => [styles.radioRow, pressed && { opacity: 0.6 }]}
         accessibilityRole="radio"
         accessibilityState={{ selected }}
@@ -52,7 +52,7 @@ function HomeScreen({ navigation }: { navigation: any }) {
         />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Browser type</Text>
+          <Text style={styles.sectionTitle}>Workflow</Text>
           <View accessibilityRole="radiogroup" style={styles.radioGroup}>
             <Radio label="In-App" value="in-app" />
             <Radio label="Out-of-App" value="out-of-app" />
@@ -61,17 +61,17 @@ function HomeScreen({ navigation }: { navigation: any }) {
 
         <Button
           title="Make a payment"
-          onPress={() => navigation.navigate('PaymentWebView', { browserType })}
+          onPress={() => navigation.navigate('PaymentWebView', { workflow })}
         />
       </View>
     </SafeAreaView>
   );
 }
 
-function PaymentWebViewScreen({ route }: { route: { params: { browserType: BrowserType } } }) {
-  const { browserType } = route.params;
+function PaymentWebViewScreen({ route }: { route: { params: { workflow: WorkflowType } } }) {
+  const { workflow } = route.params;
   const baseUrl = 'http://192.168.5.108:3000/';
-  const url = `${baseUrl}?browserType=${encodeURIComponent(browserType)}`;
+  const url = `${baseUrl}?workflow=${encodeURIComponent(workflow)}`;
 
   return (
     <View style={styles.webviewContainer}>

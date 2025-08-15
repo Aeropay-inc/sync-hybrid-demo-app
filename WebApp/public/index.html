@@ -109,18 +109,18 @@
     <small>&copy; 2025 SyncroVibe</small>
   </footer>
   <script>
-    // Read browserType from query params and expose globally for reuse
     (function () {
       try {
         const params = new URLSearchParams(window.location.search);
-        const raw = (params.get('browserType') || '').toLowerCase();
+        const rawParam = params.get('workflow') ?? '';
+        const raw = rawParam.toLowerCase();
         const allowed = raw === 'out-of-app' ? 'out-of-app' : 'in-app';
         // Save globally so other functions in this file can use it
-        window.browserType = allowed;
-        console.log('browserType:', window.browserType);
+        window.workflow = allowed;
+        console.log('workflow:', window.workflow);
       } catch (e) {
         // Fallback if something goes wrong
-        window.browserType = 'in-app';
+        window.workflow = 'in-app';
       }
     })();
 
