@@ -7,7 +7,7 @@
   <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
   <!-- Aerosync Widget -->
-  <script src="/aerosync-widget-v1.1.3.js" defer></script>
+  <script src="/aerosync-widget-v2.1.4.js" defer></script>
   <style>
     :root {
       background-color: #fff;
@@ -139,12 +139,17 @@
             console.log('onEvent', JSON.stringify(event))
             // if the workflow is in-app then
             // launch the OAuth in-app
+            console.log("workflow", window.workflow)
             if (
               event?.payload?.pageTitle === "launchExternalWindow" &&
               event?.payload?.onLoadApi &&
               window.workflow === 'in-app'
             ) {
-              console.log("launchExternalWindow event received", event?.payload?.onLoadApi)
+              // post to react native webview clients 
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: "launchExternalWindow",
+                data: event?.payload?.onLoadApi
+              }))
             }
           },
 

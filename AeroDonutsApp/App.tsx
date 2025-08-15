@@ -88,9 +88,27 @@ function PaymentWebViewScreen({ route, navigation }: { route: { params: { workfl
     );
   }
 
+  const onWebViewMessage = (e: any) => {
+    const raw = e?.nativeEvent?.data;
+    let payload: any = raw;
+    try {
+      payload = JSON.parse(raw);
+    } catch { }
+    console.log('WebView message:', payload);
+    if (payload && payload.type === 'launchExternalWindow') {
+      console.log('launchExternalWindow payload from webapp:', payload.data);
+      // If desired, we could open this externally:
+      // if (payload?.data?.url) Linking.openURL(payload.data.url);
+    }
+  };
+
   return (
     <View style={styles.webviewContainer}>
-      <WebView source={{ uri: url }} style={styles.webview} />
+      <WebView
+        source={{ uri: url }}
+        style={styles.webview}
+        onMessage={onWebViewMessage}
+      />
     </View>
   );
 }
