@@ -3,8 +3,8 @@
  * Home screen with a button that opens a full-screen WebView loading the local web app.
  */
 
-import React, { useState } from 'react';
-import { Button, Image, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Button, Image, Linking, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
@@ -68,10 +68,25 @@ function HomeScreen({ navigation }: { navigation: any }) {
   );
 }
 
-function PaymentWebViewScreen({ route }: { route: { params: { workflow: WorkflowType } } }) {
+function PaymentWebViewScreen({ route, navigation }: { route: { params: { workflow: WorkflowType } }, navigation: any }) {
   const { workflow } = route.params;
   const baseUrl = 'http://192.168.5.108:3000/';
   const url = `${baseUrl}?workflow=${encodeURIComponent(workflow)}`;
+
+  useEffect(() => {
+    if (workflow === 'out-of-app') {
+      Linking.openURL(url).catch((err) => console.warn('Failed to open URL:', err));
+    }
+  }, [workflow, url]);
+
+  if (workflow === 'out-of-app') {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#7c3aed" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.webviewContainer}>
@@ -119,4 +134,6 @@ const styles = StyleSheet.create({
   radioLabel: { fontSize: 16 },
   webviewContainer: { flex: 1, backgroundColor: '#000' },
   webview: { flex: 1 },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#000' },
+  loadingText: { color: '#fff', marginTop: 12, fontSize: 16 },
 });
