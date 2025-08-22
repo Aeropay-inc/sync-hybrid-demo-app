@@ -1,97 +1,65 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# AeroDonutsApp – Project Guide
 
-# Getting Started
+A React Native app demonstrating in‑app and out‑of‑app flows for the AeroSync widget, with typed deep link handling and a Result screen.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Requirements
 
-## Step 1: Start Metro
+- Node.js >= 18
+- Android Studio and/or Xcode (see React Native environment setup)
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Install & Run
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+```bash
+# from AeroDonutsApp/
+npm i
 
-```sh
-# Using npm
+# start Metro bundler
 npm start
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# run Android (emulator/device)
 npm run android
 
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+# run iOS (Simulator, macOS only)
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## App Overview
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+- `App.tsx`
+  - Home screen: choose `inAppBrowser` (in‑app) or `systemBrowser` (out‑of‑app)
+  - `PaymentWebView` screen: hosts the WebApp or exchanges postMessage with it
+  - Deep link listener: parses `aerodonutapp://?...` into typed `DeepLinkParams`
+  - Result screen: shows status + payload and a Home button
 
-## Step 3: Modify your app
+## Flows
 
-Now that you have successfully run the app, let's make changes!
+- In‑App Browser
+  - Home selects in‑app
+  - WebApp computes `getLaunchUrl()` and postMessages it to React Native WebView
+  - Mobile opens that URL in an in‑app browser (`react-native-inappbrowser-reborn`)
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+- System Browser (Out‑of‑App)
+  - Home selects out‑of‑app
+  - Mobile opens the WebApp in the system browser
+  - WebApp launches the widget directly (popup) and completes
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+In both flows, AeroSync deep‑links back using the `aerodonutapp://` scheme.
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## Deep Link Events
 
-## Congratulations! :tada:
+- success
+  - `status=success`
+  - payload: `{ connectionId, clientName, aeroPassUserUuid }`
+- error
+  - `status=error`
+  - payload: `{ AC_CODE, description }`
+- close
+  - `status=close`
 
-You've successfully run and modified your React Native App. :partying_face:
+On receipt, the app navigates to `Result` to display status and payload; use the Home button to return.
 
-### Now what?
+## Troubleshooting
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+- Ensure `aerodonutapp://` is registered in native config (Android intent filters; iOS URL types)
+- When using system browser, confirm popup permissions and valid token/environment in `WebApp/public/index.html`
+- If WebApp runs on a non‑default port/host, update URLs accordingly
