@@ -8,8 +8,9 @@ import { ActivityIndicator, Button, Image, Linking, Platform, Pressable, SafeAre
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
+import InAppBrowser from 'react-native-inappbrowser-reborn';
 
-type WorkflowType = 'in-app' | 'out-of-app';
+type WorkflowType = 'inAppBrowser' | 'systemBrowser';
 
 type RootStackParamList = {
   Home: undefined;
@@ -19,7 +20,7 @@ type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeScreen({ navigation }: { navigation: any }) {
-  const [workflow, setWorkflow] = useState<WorkflowType>('in-app');
+  const [workflow, setWorkflow] = useState<WorkflowType>('inAppBrowser');
 
   const Radio = ({ label, value }: { label: string; value: WorkflowType }) => {
     const selected = workflow === value;
@@ -54,8 +55,8 @@ function HomeScreen({ navigation }: { navigation: any }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Workflow</Text>
           <View accessibilityRole="radiogroup" style={styles.radioGroup}>
-            <Radio label="In-App" value="in-app" />
-            <Radio label="Out-of-App" value="out-of-app" />
+            <Radio label="In-App" value="inAppBrowser" />
+            <Radio label="Out-of-App" value="systemBrowser" />
           </View>
         </View>
 
@@ -74,12 +75,12 @@ function PaymentWebViewScreen({ route, navigation }: { route: { params: { workfl
   const url = `${baseUrl}?workflow=${encodeURIComponent(workflow)}`;
 
   useEffect(() => {
-    if (workflow === 'out-of-app') {
+    if (workflow === 'systemBrowser') {
       Linking.openURL(url).catch((err) => console.warn('Failed to open URL:', err));
     }
   }, [workflow, url]);
 
-  if (workflow === 'out-of-app') {
+  if (workflow === 'systemBrowser') {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#7c3aed" />
@@ -88,17 +89,38 @@ function PaymentWebViewScreen({ route, navigation }: { route: { params: { workfl
     );
   }
 
-  const onWebViewMessage = (e: any) => {
-    const raw = e?.nativeEvent?.data;
-    let payload: any = raw;
+  const onWebViewMessage = async (event: any) => {
     try {
-      payload = JSON.parse(raw);
-    } catch { }
-    console.log('WebView message:', payload);
-    if (payload && payload.type === 'launchExternalWindow') {
-      console.log('launchExternalWindow payload from webapp:', payload.data);
-      // If desired, we could open this externally:
-      // if (payload?.data?.url) Linking.openURL(payload.data.url);
+      const data = JSON.parse(event.nativeEvent.data);
+
+      /*
+       * If the workflow is inAppBrowser, open the widgetUrl in inAppBrowser
+       */
+      if (data.type === 'inAppBrowser' && data.url) {
+        const targetUrl = data.url;
+
+        try {
+          const available = await InAppBrowser.isAvailable();
+
+          if (available) {
+            await InAppBrowser.open(targetUrl, {
+              dismissButtonStyle: 'close',
+              animated: true,
+              modalEnabled: true,
+              enableBarCollapsing: true,
+              showTitle: true,
+              toolbarColor: Platform.OS === 'android' ? '#ffffff' : undefined,
+            });
+          } else {
+            Linking.openURL(targetUrl);
+          }
+        } catch (err) {
+          console.warn('Failed to open InAppBrowser, falling back to Linking:', err);
+          Linking.openURL(targetUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Invalid message from WebView:', error);
     }
   };
 
@@ -114,6 +136,42 @@ function PaymentWebViewScreen({ route, navigation }: { route: { params: { workfl
 }
 
 export default function App() {
+  // Listen for deep links and log query params
+  useEffect(() => {
+    const handleUrlString = (url: string) => {
+      try {
+        console.log('Deep link URL:', url);
+        const parsed = new URL(url);
+        const params = Object.fromEntries(parsed.searchParams.entries());
+        console.log('Deep link query params:', params);
+      } catch (err) {
+        console.warn('Failed to parse deep link URL:', err);
+      }
+    };
+
+    const handleDeepLink = ({ url }: { url: string }) => handleUrlString(url);
+
+    // Handle the initial URL if the app was opened via deep link
+    Linking.getInitialURL()
+      .then((initialUrl) => {
+        if (initialUrl) handleUrlString(initialUrl);
+      })
+      .catch((err) => console.warn('Error getting initial URL:', err));
+
+    // Subscribe to subsequent deep link events
+    const subscription: any = Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      // RN versions differ in API, support both
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      } else {
+        // @ts-ignore - compat for older RN
+        Linking.removeEventListener?.('url', handleDeepLink);
+      }
+    };
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
