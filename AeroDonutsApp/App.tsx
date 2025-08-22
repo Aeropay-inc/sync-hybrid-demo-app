@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, Image, Linking, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
@@ -15,12 +15,32 @@ type WorkflowType = 'inAppBrowser' | 'systemBrowser';
 type RootStackParamList = {
   Home: undefined;
   PaymentWebView: { workflow: WorkflowType };
+  Result: { result: DeepLinkParams };
 };
 
 interface SuccessPayload {
   connectionId: string;
   clientName: string;
   aeroPassUserUuid: string;
+}
+
+function ResultScreen({ route, navigation }: { route: { params: { result: DeepLinkParams } }, navigation: any }) {
+  const { result } = route.params;
+  const status = result.status;
+  const payload = (result as any).payload;
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={{ padding: 24, alignItems: 'center', gap: 12 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700' }}>Status: {status}</Text>
+        <Text style={{ fontSize: 16, color: '#444', textAlign: 'center' }}>
+          {payload ? JSON.stringify(payload, null, 2) : 'No payload'}
+        </Text>
+        <View style={{ height: 12 }} />
+        <Button title="Home" onPress={() => navigation.navigate('Home')} />
+      </View>
+    </SafeAreaView>
+  );
 }
 
 type ErrorMessage = {
@@ -34,6 +54,7 @@ type DeepLinkParams =
   | { status: 'close' };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 function HomeScreen({ navigation }: { navigation: any }) {
   const [workflow, setWorkflow] = useState<WorkflowType>('inAppBrowser');
@@ -189,6 +210,13 @@ export default function App() {
         } else {
           console.log('Deep link status: UNKNOWN', status, params);
         }
+
+        // Navigate to Result screen with typed deepLink
+        if (deepLink) {
+          const nav = () => navigationRef.navigate('Result', { result: deepLink as DeepLinkParams });
+          if (navigationRef.isReady()) nav();
+          else setTimeout(() => { if (navigationRef.isReady()) nav(); }, 100);
+        }
       } catch (err) {
         console.warn('Failed to parse deep link URL:', err);
       }
@@ -218,7 +246,7 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator>
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
         <Stack.Screen
@@ -226,6 +254,7 @@ export default function App() {
           component={PaymentWebViewScreen}
           options={{ title: 'Payment' }}
         />
+        <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Result' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
