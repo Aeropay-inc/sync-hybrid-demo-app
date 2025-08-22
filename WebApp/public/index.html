@@ -7,7 +7,7 @@
   <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
   <!-- Aerosync Widget -->
-  <script src="/aerosync-widget-v2.1.4.js" defer></script>
+  <script src="https://cdn.qa-sync.aero.inc/2.1.5/aerosync-widget.js" defer></script>
   <style>
     :root {
       background-color: #fff;
@@ -111,20 +111,27 @@
   <script>
     (function () {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const rawParam = params.get('workflow') ?? '';
-        const raw = rawParam.toLowerCase();
-        const allowed = raw === 'out-of-app' ? 'out-of-app' : 'in-app';
-        // Save globally so other functions in this file can use it
-        window.workflow = allowed;
-        console.log('workflow:', window.workflow);
-      } catch (e) {
-        // Fallback if something goes wrong
-        window.workflow = 'in-app';
+        // Get the 'workflow' query parameter and convert it to lowercase
+        const raw = new URLSearchParams(window.location.search).get('workflow');
+        console.log('workflow', raw);
+
+        // Define allowed workflow types
+        const validWorkflows = ['inAppBrowser', 'systemBrowser'];
+
+        // If the value is one of the allowed workflows, use it; otherwise default to 'host'
+        window.workflow = validWorkflows.includes(raw) ? raw : 'host';
+      } catch {
+        // If any error occurs (e.g. malformed URL), default to 'host'
+        window.workflow = 'host';
       }
+
+      // Log the resolved workflow type
+      console.log('workflow:', window.workflow);
     })();
 
     function linkBank() {
+      const isInApp = window.workflow === 'inAppBrowser';
+      const outOfApp = window.workflow === 'systemBrowser';
       try {
         const widgetControls = window?.aerosync?.initWidget({
           elementId: 'widgetId', // ID of the DOM element where the widget will be attached
@@ -133,31 +140,16 @@
           token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJiOTQ4YTNkMGMzNzY0NmZhYjY1M2RmNjgyM2JmMTZmNCIsInVzZXJQYXNzd29yZCI6IjhiMzJhMTlhNDNkNjQyYTg5YjE3ZGFiMmE5MzEzOGE5IiwiQ2xpZW50SWQiOiJlMDU5YzE2OS1lNWRkLTRlN2UtYmY5ZC0xZWU3NWEzOTU0ZjMiLCJDbGllbnROYW1lIjoiU3ludGhldGljIFRlc3RpbmciLCJzZXNzaW9uSWQiOiIxNDQ2YTMxZjQ3YTY0NjcyYTcwZWJkZjA0M2RhMWE1MCJ9.8tPsVqHmn_Qy_KzpCGxV3GQSQniwbFf36BGvrrj8HAI', //  AeroSync token (Important: Do not use an AeroPay token)
           // aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
           // consumerId: 'XXXX', // Aeorsync configuration ID (optional)
-          handleOAuthManually: (window.workflow === 'in-app'),
+          ...(isInApp && { deeplink: 'aerodonutapp://' }),
+          widgetLaunchType: (isInApp) ? 'inAppBrowser' : (outOfApp) ? 'systemBrowser' : 'host',
           // Event callback for various widget lifecycle events
           onEvent: function (event) {
             console.log('onEvent', JSON.stringify(event))
-            // if the workflow is in-app then
-            // launch the OAuth in-app
-            console.log("workflow", window.workflow)
-            if (
-              event?.payload?.pageTitle === "launchExternalWindow" &&
-              event?.payload?.onLoadApi &&
-              window.workflow === 'in-app'
-            ) {
-              // post to react native webview clients 
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: "launchExternalWindow",
-                data: event?.payload?.onLoadApi
-              }))
-            }
           },
-
           // Called when the widget is fully loaded
           onLoad: function () {
             console.log('Sync onload')
           },
-
           // Called on successful sync completion
           onSuccess: function (event) {
             console.log('onSuccess', JSON.stringify(event))
@@ -167,16 +159,32 @@
           onClose: function () {
             console.log('Sync onclose')
           },
-
           // Called when an error occurs
           onError: function (error) {
             console.log('onError', error)
           }
         })
 
-        // Launch the widget UI
-        if (widgetControls) {
+        if (!widgetControls) {
+          console.error('Failed to initialize widget')
+          return
+        }
+
+        // Launch the Aerosync widget within host (iframe)
+        if (window.workflow === 'host') {
           widgetControls.launch()
+        }
+
+        if (window.workflow === 'inAppBrowser') {
+          const widgetUrl = widgetControls.getLaunchUrl()
+          console.log('widgetUrl', widgetUrl)
+          // pass the widgetUrl to the react native app
+          // react native app will open the widgetUrl in inAppBrowser browser
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'inAppBrowser',
+            url: widgetUrl,
+          }));
+          return;
         }
       } catch (error) {
         console.error('Error initializing widget:', error)
