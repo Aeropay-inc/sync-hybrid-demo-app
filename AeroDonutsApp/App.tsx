@@ -17,6 +17,22 @@ type RootStackParamList = {
   PaymentWebView: { workflow: WorkflowType };
 };
 
+interface SuccessPayload {
+  connectionId: string;
+  clientName: string;
+  aeroPassUserUuid: string;
+}
+
+type ErrorMessage = {
+  AC_CODE: string;
+  description: string;
+};
+
+type DeepLinkParams =
+  | { status: 'success'; payload: SuccessPayload }
+  | { status: 'error'; payload: ErrorMessage }
+  | { status: 'close' };
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeScreen({ navigation }: { navigation: any }) {
@@ -141,9 +157,38 @@ export default function App() {
     const handleUrlString = (url: string) => {
       try {
         console.log('Deep link URL:', url);
-        const parsed = new URL(url);
-        const params = Object.fromEntries(parsed.searchParams.entries());
+        const parsedUrl = new URL(url);
+        const params: Record<string, string> = Object.fromEntries(parsedUrl.searchParams.entries());
         console.log('Deep link query params:', params);
+
+        // Branch by status and emit a typed structure
+        const status = params.status as string | undefined;
+        let deepLink: DeepLinkParams | undefined;
+        if (status === 'success') {
+          deepLink = {
+            status: 'success',
+            payload: {
+              connectionId: params.connectionId,
+              clientName: params.clientName,
+              aeroPassUserUuid: params.aeroPassUserUuid,
+            },
+          };
+          console.log('Deep link status: SUCCESS (typed)', deepLink);
+        } else if (status === 'error') {
+          deepLink = {
+            status: 'error',
+            payload: {
+              AC_CODE: params.AC_CODE,
+              description: params.description,
+            },
+          };
+          console.log('Deep link status: ERROR (typed)', deepLink);
+        } else if (status === 'close') {
+          deepLink = { status: 'close' };
+          console.log('Deep link status: CLOSE (typed)', deepLink);
+        } else {
+          console.log('Deep link status: UNKNOWN', status, params);
+        }
       } catch (err) {
         console.warn('Failed to parse deep link URL:', err);
       }
