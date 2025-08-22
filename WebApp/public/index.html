@@ -136,12 +136,13 @@
         const widgetControls = window?.aerosync?.initWidget({
           elementId: 'widgetId', // ID of the DOM element where the widget will be attached
           iframeTitle: 'Connect', // Title for the iframe
-          environment: 'qa', // Widget environment (e.g., 'sandbox' or 'production')
-          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJiOTQ4YTNkMGMzNzY0NmZhYjY1M2RmNjgyM2JmMTZmNCIsInVzZXJQYXNzd29yZCI6IjhiMzJhMTlhNDNkNjQyYTg5YjE3ZGFiMmE5MzEzOGE5IiwiQ2xpZW50SWQiOiJlMDU5YzE2OS1lNWRkLTRlN2UtYmY5ZC0xZWU3NWEzOTU0ZjMiLCJDbGllbnROYW1lIjoiU3ludGhldGljIFRlc3RpbmciLCJzZXNzaW9uSWQiOiIxNDQ2YTMxZjQ3YTY0NjcyYTcwZWJkZjA0M2RhMWE1MCJ9.8tPsVqHmn_Qy_KzpCGxV3GQSQniwbFf36BGvrrj8HAI', //  AeroSync token (Important: Do not use an AeroPay token)
-          // aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
+          environment: 'sandbox', // Widget environment (e.g., 'sandbox' or 'production')
+          token: 'XXXXXX', //  AeroSync token (Important: Do not use an AeroPay token)
+          aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
           // consumerId: 'XXXX', // Aeorsync configuration ID (optional)
           ...(isInApp && { deeplink: 'aerodonutapp://' }),
-          widgetLaunchType: (isInApp) ? 'inAppBrowser' : (outOfApp) ? 'systemBrowser' : 'host',
+          widgetLaunchType: (isInApp) ? 'inAppBrowser' : 'systemBrowser',
+
           // Event callback for various widget lifecycle events
           onEvent: function (event) {
             console.log('onEvent', JSON.stringify(event))
@@ -171,7 +172,9 @@
         }
 
         // Launch the Aerosync widget within host (iframe)
-        if (window.workflow === 'host') {
+        if (window.workflow === 'host' || window.workflow === 'systemBrowser') {
+          const widgetUrl = widgetControls.getLaunchUrl()
+          console.log('widgetUrl', widgetUrl)
           widgetControls.launch()
         }
 
