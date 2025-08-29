@@ -1,199 +1,52 @@
-<!doctype html>
-<html lang="en">
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AeroPay</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
+    </style>
+    <script src="https://sdk.aeropay.com/ap/aeropay.js"></script>
+  </head>
+  <body>
+    <div id="aeropay-button-container"></div>
+    <script>
+      (function(){
+        function run(){
+          try {
+            window.AeroPay.init({ env: 'sandbox' });
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SyncroVibe</title>
-  <link rel="icon" href="data:,">
-  <!-- Aerosync Widget -->
-  <script src="https://cdn.sync.aero.inc/2.1.5/aerosync-widget.js" defer></script>
-  <style>
-    :root {
-      background-color: #fff;
-    }
+            var onSuccess = function(uuid) {
+              console.log(uuid);
+              try {
+                if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'success', uuid: uuid }));
+                }
+              } catch(_){}}
 
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-    }
+            // event callback is optional 
+            var onEvent = function(event) {
+              console.log(event);
+            };
 
-    header {
-      padding: 24px;
-      background: #0f172a;
-      color: #fff;
-    }
+            var apButton = window.AeroPay.button({
+              location: '6ced28ccc4',
+              type: 'checkout',
+              onSuccess: onSuccess,
+              onEvent: onEvent,
+              forceIframe: true
+            });
 
-    main {
-      padding: 32px;
-      max-width: 880px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: rgba(0, 0, 0, 0.05);
-      padding: 20px;
-      border-radius: 12px;
-    }
-
-    .btn {
-      display: inline-flex;
-      flex-direction: row;
-      /* Icon and text on the same line */
-      align-items: center;
-      /* Vertically center icon and text */
-      justify-content: center;
-      gap: 8px;
-      white-space: nowrap;
-      /* Prevent text from wrapping to next line */
-      margin-top: 16px;
-      padding: 14px 24px;
-      /* Increase size */
-      border-radius: 8px;
-      background: #7c3aed;
-      /* Violet 600 */
-      color: #fff;
-      text-decoration: none;
-      font-size: 16px;
-      font-weight: 600;
-      min-width: 200px;
-      /* Increase width */
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background: #6d28d9;
-      /* Darker violet on hover */
-    }
-
-    /* Ensure the icon aligns nicely with the text */
-    .btn svg {
-      align-self: center;
-    }
-
-    footer {
-      padding: 24px;
-      text-align: center;
-      opacity: 0.7;
-    }
-  </style>
-</head>
-
-<body>
-  <header>
-    <h1>SyncroVibe</h1>
-    <p>Seamless bank‑linked payments</p>
-  </header>
-  <main>
-    <section class="card">
-      <h2>Link your bank to pay</h2>
-      <p>SyncroVibe lets you securely link a bank account with ease. The integration ensures credentials are never
-        stored, shared, or exposed — maintaining strict privacy and security standards.</p>
-      <button id="link-bank-btn" class="btn" onclick="linkBank()">
-        <!-- Bank icon (inline SVG) -->
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M3 10.5L12 5l9 5.5v1.5H3V10.5zM5 12v7h2v-7H5zm4 0v7h2v-7H9zm4 0v7h2v-7h-2zm4 0v7h2v-7h-2zM3 21h18v-2H3v2z"
-            fill="currentColor" />
-        </svg>
-        <span>Link a Bank</span>
-      </button>
-      <!-- This div is where the AeroSync widget iframe will be embedded -->
-      <!-- Make sure the 'id' here matches the 'elementId' passed during initialization -->
-      <div id="widgetId"></div>
-    </section>
-  </main>
-  <footer>
-    <small>&copy; 2025 SyncroVibe</small>
-  </footer>
-  <script>
-    (function () {
-      try {
-        // Get the 'workflow' query parameter and convert it to lowercase
-        const raw = new URLSearchParams(window.location.search).get('workflow');
-        console.log('workflow', raw);
-
-        // Define allowed workflow types
-        const validWorkflows = ['inAppBrowser', 'systemBrowser'];
-
-        // If the value is one of the allowed workflows, use it; otherwise default to 'host'
-        window.workflow = validWorkflows.includes(raw) ? raw : 'host';
-      } catch {
-        // If any error occurs (e.g. malformed URL), default to 'host'
-        window.workflow = 'host';
-      }
-
-      // Log the resolved workflow type
-      console.log('workflow:', window.workflow);
-    })();
-
-    function linkBank() {
-      const isInApp = window.workflow === 'inAppBrowser';
-      const outOfApp = window.workflow === 'systemBrowser';
-      try {
-        const widgetControls = window?.aerosync?.initWidget({
-          elementId: 'widgetId', // ID of the DOM element where the widget will be attached
-          iframeTitle: 'Connect', // Title for the iframe
-          environment: 'sandbox', // Widget environment (e.g., 'sandbox' or 'production')
-          token: 'XXXXXX', //  AeroSync token (Important: Do not use an AeroPay token)
-          aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
-          // consumerId: 'XXXX', // Aeorsync configuration ID (optional)
-          ...(isInApp && { deeplink: 'aerodonutapp://' }),
-          widgetLaunchType: (isInApp) ? 'inAppBrowser' : 'systemBrowser',
-
-          // Event callback for various widget lifecycle events
-          onEvent: function (event) {
-            console.log('onEvent', JSON.stringify(event))
-          },
-          // Called when the widget is fully loaded
-          onLoad: function () {
-            console.log('Sync onload')
-          },
-          // Called on successful sync completion
-          onSuccess: function (event) {
-            console.log('onSuccess', JSON.stringify(event))
-          },
-
-          // Called when the widget is closed
-          onClose: function () {
-            console.log('Sync onclose')
-          },
-          // Called when an error occurs
-          onError: function (error) {
-            console.log('onError', error)
-          }
-        })
-
-        if (!widgetControls) {
-          console.error('Failed to initialize widget')
-          return
+            apButton.total('88.50');
+            apButton.render('aeropay-button-container');
+          } catch (e) { console.log('AeroPay run error', e); }
         }
 
-        // Launch the Aerosync widget within host (iframe)
-        if (window.workflow === 'host' || window.workflow === 'systemBrowser') {
-          const widgetUrl = widgetControls.getLaunchUrl()
-          console.log('widgetUrl', widgetUrl)
-          widgetControls.launch()
-        }
-
-        if (window.workflow === 'inAppBrowser') {
-          const widgetUrl = widgetControls.getLaunchUrl()
-          console.log('widgetUrl', widgetUrl)
-          // pass the widgetUrl to the react native app
-          // react native app will open the widgetUrl in inAppBrowser browser
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'inAppBrowser',
-            url: widgetUrl,
-          }));
-          return;
-        }
-      } catch (error) {
-        console.error('Error initializing widget:', error)
-      }
-    }
-  </script>
-</body>
-
-</html>
+        (function waitForSDK(){
+          if (window.AeroPay && typeof window.AeroPay.button === 'function') return run();
+          setTimeout(waitForSDK, 50);
+        })();
+      })();
+    </script>
+  </body>
+ </html>
