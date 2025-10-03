@@ -7,7 +7,7 @@
   <title>SyncroVibe</title>
   <link rel="icon" href="data:,">
   <!-- Aerosync Widget -->
-  <script src="https://cdn.sync.aero.inc/2.1.5/aerosync-widget.js" defer></script>
+  <script src="https://cdn.qa-sync.aero.inc/2.1.4/aerosync-widget.js" defer></script>
   <style>
     :root {
       background-color: #fff;
@@ -132,20 +132,35 @@
     function linkBank() {
       const isInApp = window.workflow === 'inAppBrowser';
       const outOfApp = window.workflow === 'systemBrowser';
+      const DEEPLINK = 'syncrovibereactcli://';
       try {
+        const cfg = window.__WIDGET_CONFIG__ || {};
+        console.log('Injected __WIDGET_CONFIG__', cfg);
         const widgetControls = window?.aerosync?.initWidget({
           elementId: 'widgetId', // ID of the DOM element where the widget will be attached
           iframeTitle: 'Connect', // Title for the iframe
-          environment: 'sandbox', // Widget environment (e.g., 'sandbox' or 'production')
-          token: 'XXXXXX', //  AeroSync token (Important: Do not use an AeroPay token)
-          aeroPassUserUuid: "f873d4da-df4a-46d3-8cbe-19df1ae46d31", // Aeropass user id
-          // consumerId: 'XXXX', // Aeorsync configuration ID (optional)
-          ...(isInApp && { deeplink: 'aerodonutapp://' }),
-          widgetLaunchType: (isInApp) ? 'inAppBrowser' : 'systemBrowser',
+          environment: (cfg.environment === 'dev') ? 'qa' : cfg.environment, // Widget environment
+          token: cfg.token || '', //  AeroSync token (Important: Do not use an AeroPay token)
+          deeplink: DEEPLINK,
+          aeroPassUserUuid: cfg.aeroPassUserUuid || '', // Aeropass user id
+          // configurationId maps to consumerId in web widget
+          ...(cfg.configurationId ? { consumerId: cfg.configurationId } : {}),
+          ...(cfg.stateCode ? { stateCode: cfg.stateCode } : {}),
+          handleOAuthManually: true,
 
           // Event callback for various widget lifecycle events
           onEvent: function (event) {
             console.log('onEvent', JSON.stringify(event))
+            if (
+              event?.payload?.pageTitle === "launchExternalWindow" &&
+              event?.payload?.onLoadApi
+            ) {
+              const oauthUrl = event.payload.onLoadApi;
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'inAppBrowser',
+                url: oauthUrl,
+              }));
+            }
           },
           // Called when the widget is fully loaded
           onLoad: function () {
@@ -172,23 +187,25 @@
         }
 
         // Launch the Aerosync widget within host (iframe)
-        if (window.workflow === 'host' || window.workflow === 'systemBrowser') {
-          const widgetUrl = widgetControls.getLaunchUrl()
-          console.log('widgetUrl', widgetUrl)
-          widgetControls.launch()
-        }
+        widgetControls.launch()
 
-        if (window.workflow === 'inAppBrowser') {
-          const widgetUrl = widgetControls.getLaunchUrl()
-          console.log('widgetUrl', widgetUrl)
-          // pass the widgetUrl to the react native app
-          // react native app will open the widgetUrl in inAppBrowser browser
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'inAppBrowser',
-            url: widgetUrl,
-          }));
-          return;
-        }
+        // if (window.workflow === 'host' || window.workflow === 'systemBrowser') {
+        //   const widgetUrl = widgetControls.getLaunchUrl()
+        //   console.log('widgetUrl', widgetUrl)
+        //   widgetControls.launch()
+        // }
+
+        // if (window.workflow === 'inAppBrowser') {
+        //   const widgetUrl = widgetControls.getLaunchUrl()
+        //   console.log('widgetUrl', widgetUrl)
+        //   // pass the widgetUrl to the react native app
+        //   // react native app will open the widgetUrl in inAppBrowser browser
+        //   window.ReactNativeWebView.postMessage(JSON.stringify({
+        //     type: 'inAppBrowser',
+        //     url: widgetUrl,
+        //   }));
+        //   return;
+        // }
       } catch (error) {
         console.error('Error initializing widget:', error)
       }
