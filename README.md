@@ -1,75 +1,50 @@
 # Sync Hybrid Demo App
 
-This repo demonstrates a hybrid integration of the AeroSync widget across a simple Node.js web app and a React Native mobile app.
+Demonstrates two ways a merchant app can integrate the AeroSync widget, both ending at a shared Wallet screen.
 
-- Web: `WebApp/` serves a minimal site that initializes the AeroSync widget and supports multiple launch modes.
-- Mobile: `AeroDonutsApp/` loads the web app in a WebView (in‑app) or opens it out‑of‑app (system browser), receives deep links back, and shows a result screen.
+- **Web** (`WebApp/`) — a small Vue 3 SPA (5-screen onboarding via a stepper) served by an Express server. The AeroSync widget is launched on the Banking step. Express also hosts a tiny "boarding webhook" used by Option 2.
+- **Mobile** (`AeroDonutsApp/`) — a fake merchant app ("AeroDonuts", React Native) with a Launcher that runs either demo option live.
+
+## The two demo options
+
+### Option 1 — Embedded (new flow)
+- A full-screen **WebView** loads the SPA with `?handleOAuthManually=true`.
+- AeroSync runs with `handleOAuthManually: true`, so it emits the OAuth URL via `onEvent` (`pageTitle === "launchExternalWindow"`, `onLoadApi`).
+- The SPA forwards that URL to the app via `window.ReactNativeWebView.postMessage({ type: "AEROSYNC_OAUTH_URL", url })`.
+- The app opens it in a **secure session** (`InAppBrowser.openAuth` → ASWebAuthenticationSession on iOS / Custom Tabs on Android).
+- OAuth returns via the `aerodonutapp://` deep link; the session closes and AeroSync resumes inside the WebView, eventually firing `onSuccess`.
+- The SPA shows **Congratulations**; its "Go to Wallet" button posts `{ type: "BOARDING_COMPLETE", account }`, and the app navigates to the native **Wallet**.
+
+### Option 2 — Direct Sign-up (standalone)
+- The whole SPA is opened in the system **InAppBrowser** with a `?sessionId=<id>`.
+- AeroSync runs with `handleOAuthManually: false` (handles OAuth inline); the SPA only logs `onEvent`.
+- On `onSuccess`, the SPA POSTs the boarding to the demo webhook (`POST /api/boarded`).
+- The app **polls** `GET /api/boarded/:sessionId`; once boarded it closes the browser and routes to the native **Wallet**.
 
 ## Quick Start
 
-- Requirements
-  - Node.js >= 18 (for both projects)
-  - Android Studio / Xcode for mobile (see React Native environment setup)
+- Requirements: Node.js >= 18 (both projects); Android Studio / Xcode for mobile.
 
-- Start the web app (default http://localhost:3000)
-  - Windows PowerShell (or any shell)
-  - In `WebApp/`:
-    - Install: `npm i`
-    - Run: `npm start`
+- Web (`WebApp/`):
+  - Install: `npm i`
+  - Run: `npm start` (binds `0.0.0.0:3000`; prints the LAN URL)
 
-- Start the mobile app (React Native)
-  - In `AeroDonutsApp/`:
-    - Install: `npm i`
-    - Start Metro: `npm start`
-    - Android: `npm run android`
-    - iOS: `npm run ios` (macOS + Xcode required)
+- Mobile (`AeroDonutsApp/`):
+  - Set `BASE_URL` in `config.ts` to the machine running the web app
+    (physical device: LAN IP; Android emulator: `http://10.0.2.2:3000`; iOS sim: `http://localhost:3000`).
+  - Install: `npm i`
+  - Metro: `npm start`; then `npm run android` or `npm run ios`.
 
-## Integration Flows
+## Deep link scheme
 
-- Host (iframe in the web page)
-  - The web page launches the widget inside an iframe (no app handoff).
-- In‑App Browser (mobile webview)
-  - Web page calculates the widget URL and postMessages it to the React Native WebView.
-  - Mobile opens that URL in an in‑app browser.
-- System Browser (out‑of‑app)
-  - Mobile opens the web app URL in the system browser.
-  - The web page itself launches AeroSync in a popup and handles return via deep link.
-
-In In‑App Browser and System Browser cases, AeroSync completes with a deep link back to the app using the `aerodonutapp://` scheme.
-
-## Deep Link Contract
-
-- success
-  - `aerodonutapp://?status=success&connectionId=...&clientName=...&aeroPassUserUuid=...`
-- error
-  - `aerodonutapp://?status=error&AC_CODE=...&description=...`
-- close
-  - `aerodonutapp://?status=close`
-
-The mobile app parses the URL, builds a typed object, and navigates to a Result screen showing status and payload.
+`aerodonutapp://` — registered in `android/app/src/main/AndroidManifest.xml` and `ios/AeroDonutsApp/Info.plist`. Used as the OAuth redirect target for Option 1's secure session.
 
 ## Project Structure
 
 - `WebApp/`
-  - `index.js` Express server on port 3000
-  - `public/index.html` main page initializing the widget
-  - `public/aerosync-widget.js` local UMD build for offline/dev testing (optional)
+  - `index.js` — Express server (static SPA + `/api/boarded` webhook/poll endpoints)
+  - `public/app.js` — Vue SPA (stepper, 5 screens, AeroSync integration, native messaging)
+  - `public/brand.config.js` — branding presets
 - `AeroDonutsApp/`
-  - `App.tsx` navigation, WebView, deep link handling, and Result screen
-
-## Useful Commands
-
-- Web
-  - Install: `npm i` (inside `WebApp/`)
-  - Run: `npm start`
-  - Change port: `PORT=4000 npm start` (POSIX) or `$env:PORT=4000; npm start` (PowerShell)
-- Mobile
-  - Metro: `npm start`
-  - Android: `npm run android`
-  - iOS: `npm run ios`
-
-## Notes
-
-- Ensure your AeroSync token, environment, and deep link scheme are correct in `WebApp/public/index.html`.
-- If using system browser mode on iOS/Android, confirm deep link configuration in native manifests (intent filters / URL types).
-- For testing, you can manually open deep links via adb/xcrun or the platform UI and observe the Result screen.
+  - `App.tsx` — Launcher, Embedded WebView (Option 1), Direct Sign-up (Option 2), Wallet
+  - `config.ts` — `BASE_URL` and deep link scheme

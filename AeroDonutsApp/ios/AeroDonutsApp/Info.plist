@@ -10,6 +10,18 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<!-- Deep link: aerodonutapp:// (AeroSync OAuth redirect + secure session return) -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.aeropay.aerodonutsapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aerodonutapp</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

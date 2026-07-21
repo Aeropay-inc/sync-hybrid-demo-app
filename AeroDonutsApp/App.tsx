@@ -1,163 +1,146 @@
 /**
- * AeroDonutsApp
- * Home screen with a button that opens a full-screen WebView loading the local web app.
+ * AeroDonutsApp — a fake "merchant app" demonstrating two AeroSync integration
+ * flows that both end at a shared Wallet screen.
+ *
+ *  Launcher
+ *    ├─ Option 1: Embedded (isNewFlow=true)
+ *    │    Full-screen WebView loads the mock SPA with ?handleOAuthManually=true.
+ *    │    AeroSync emits the OAuth URL via onEvent -> the SPA postMessages it here
+ *    │    -> we open it in a secure session (ASWebAuthenticationSession via
+ *    │    InAppBrowser.openAuth). OAuth returns via the aerodonutapp:// deep link,
+ *    │    the session closes, AeroSync resumes and fires onSuccess -> the SPA shows
+ *    │    Congratulations -> "Go to Wallet" postMessages BOARDING_COMPLETE -> Wallet.
+ *    │
+ *    └─ Option 2: Direct Sign-up (standalone)
+ *         The whole SPA is opened in the system InAppBrowser with a ?sessionId.
+ *         handleOAuthManually=false, so AeroSync handles OAuth inline. On onSuccess
+ *         the SPA POSTs the boarding to the demo webhook; this app polls that
+ *         endpoint and, once boarded, closes the browser and routes to Wallet.
  */
 
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, Image, Linking, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WebView } from 'react-native-webview';
 import InAppBrowser from 'react-native-inappbrowser-reborn';
 
-type WorkflowType = 'inAppBrowser' | 'systemBrowser';
+import { BASE_URL, DEEP_LINK_SCHEME } from './config';
+
+/* --- Types -------------------------------------------------------------- */
+
+// Merchant-side contact info from the enroll form, shown on the Wallet screen.
+type Contact = { name?: string; email?: string; phone?: string } | null;
 
 type RootStackParamList = {
-  Home: undefined;
-  PaymentWebView: { workflow: WorkflowType };
-  Result: { result: DeepLinkParams };
+  Launcher: undefined;
+  EmbeddedWebView: undefined;
+  DirectSignup: undefined;
+  Wallet: { contact: Contact };
 };
-
-interface SuccessPayload {
-  connectionId: string;
-  clientName: string;
-  aeroPassUserUuid: string;
-}
-
-function ResultScreen({ route, navigation }: { route: { params: { result: DeepLinkParams } }, navigation: any }) {
-  const { result } = route.params;
-  const status = result.status;
-  const payload = (result as any).payload;
-
-  return (
-    <SafeAreaView style={[styles.safeArea, { alignItems: 'center', justifyContent: 'center' }]}>
-      <View style={{ padding: 24, alignItems: 'center', gap: 12 }}>
-        <Text style={{ fontSize: 22, fontWeight: '700' }}>Status: {status}</Text>
-        <Text style={{ fontSize: 16, color: '#444', textAlign: 'center' }}>
-          {payload ? JSON.stringify(payload, null, 2) : 'No payload'}
-        </Text>
-        <View style={{ height: 12 }} />
-        <Button title="Home" onPress={() => navigation.navigate('Home')} />
-      </View>
-    </SafeAreaView>
-  );
-}
-
-type ErrorMessage = {
-  AC_CODE: string;
-  description: string;
-};
-
-type DeepLinkParams =
-  | { status: 'success'; payload: SuccessPayload }
-  | { status: 'error'; payload: ErrorMessage }
-  | { status: 'close' };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-function HomeScreen({ navigation }: { navigation: any }) {
-  const [workflow, setWorkflow] = useState<WorkflowType>('inAppBrowser');
-
-  const Radio = ({ label, value }: { label: string; value: WorkflowType }) => {
-    const selected = workflow === value;
-    return (
-      <Pressable
-        onPress={() => setWorkflow(value)}
-        style={({ pressed }) => [styles.radioRow, pressed && { opacity: 0.6 }]}
-        accessibilityRole="radio"
-        accessibilityState={{ selected }}
-      >
-        <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-          {selected ? <View style={styles.radioInner} /> : null}
-        </View>
-        <Text style={styles.radioLabel}>{label}</Text>
-      </Pressable>
-    );
-  };
-
+/* =========================================================================
+   Launcher / Home
+========================================================================= */
+function LauncherScreen({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} />
+      <StatusBar barStyle="dark-content" />
       <View style={styles.center}>
-        <Text style={styles.title}>AeroDonutsApp</Text>
         <Image
-          // Local asset bundled with the app
           source={require('./assets/donut.png')}
           style={styles.donutImage}
-          accessible
-          accessibilityLabel="Delicious donut"
+          accessibilityLabel="Donut"
         />
+        <Text style={styles.title}>AeroDonuts</Text>
+        <Text style={styles.subtitle}>Pick a demo flow to run live.</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Workflow</Text>
-          <View accessibilityRole="radiogroup" style={styles.radioGroup}>
-            <Radio label="In-App" value="inAppBrowser" />
-            <Radio label="Out-of-App" value="systemBrowser" />
-          </View>
-        </View>
+        <Pressable
+          style={({ pressed }) => [styles.optionBtn, pressed && styles.pressed]}
+          onPress={() => navigation.navigate('EmbeddedWebView')}
+        >
+          <Text style={styles.optionTitle}>Demo Option 1: Embedded</Text>
+          <Text style={styles.optionSub}>New flow · WebView + secure OAuth session</Text>
+        </Pressable>
 
-        <Button
-          title="Make a payment"
-          onPress={() => navigation.navigate('PaymentWebView', { workflow })}
-        />
+        <Pressable
+          style={({ pressed }) => [styles.optionBtn, styles.optionBtnAlt, pressed && styles.pressed]}
+          onPress={() => navigation.navigate('DirectSignup')}
+        >
+          <Text style={styles.optionTitle}>Demo Option 2: Direct Sign-up</Text>
+          <Text style={styles.optionSub}>Standalone · InAppBrowser + webhook</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
 }
 
-function PaymentWebViewScreen({ route, navigation }: { route: { params: { workflow: WorkflowType } }, navigation: any }) {
-  const { workflow } = route.params;
-  const baseUrl = 'http://192.168.5.108:3000/';
-  const url = `${baseUrl}?workflow=${encodeURIComponent(workflow)}`;
+/* =========================================================================
+   Option 1 — Embedded WebView (handleOAuthManually = true)
+========================================================================= */
+function EmbeddedWebViewScreen({ navigation }: { navigation: any }) {
+  const url = `${BASE_URL}/?handleOAuthManually=true`;
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (workflow === 'systemBrowser') {
-      Linking.openURL(url).catch((err) => console.warn('Failed to open URL:', err));
-    }
-  }, [workflow, url]);
-
-  if (workflow === 'systemBrowser') {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#7c3aed" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  const onWebViewMessage = async (event: any) => {
+  const openSecureOAuth = async (oauthUrl: string) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data);
-
-      /*
-       * If the workflow is inAppBrowser, open the widgetUrl in inAppBrowser
-       */
-      if (data.type === 'inAppBrowser' && data.url) {
-        const targetUrl = data.url;
-
-        try {
-          const available = await InAppBrowser.isAvailable();
-
-          if (available) {
-            await InAppBrowser.open(targetUrl, {
-              dismissButtonStyle: 'close',
-              animated: true,
-              modalEnabled: true,
-              enableBarCollapsing: true,
-              showTitle: true,
-              toolbarColor: Platform.OS === 'android' ? '#ffffff' : undefined,
-            });
-          } else {
-            Linking.openURL(targetUrl);
-          }
-        } catch (err) {
-          console.warn('Failed to open InAppBrowser, falling back to Linking:', err);
-          Linking.openURL(targetUrl);
-        }
+      const available = await InAppBrowser.isAvailable();
+      if (!available) {
+        Linking.openURL(oauthUrl);
+        return;
       }
-    } catch (error) {
-      console.error('Invalid message from WebView:', error);
+      // ASWebAuthenticationSession (iOS) / Custom Tabs auth (Android).
+      // Resolves when AeroSync redirects back to DEEP_LINK_SCHEME; the session
+      // then closes itself and AeroSync resumes inside the WebView.
+      const result = await InAppBrowser.openAuth(oauthUrl, DEEP_LINK_SCHEME, {
+        ephemeralWebSession: false,
+        showTitle: true,
+        enableUrlBarHiding: true,
+        enableDefaultShare: false,
+      });
+      console.log('openAuth result:', result);
+    } catch (err) {
+      console.warn('openAuth failed, falling back to Linking:', err);
+      Linking.openURL(oauthUrl);
+    }
+  };
+
+  const onMessage = (event: any) => {
+    let data: any;
+    try {
+      data = JSON.parse(event.nativeEvent.data);
+    } catch (e) {
+      console.warn('Non-JSON message from WebView:', event.nativeEvent.data);
+      return;
+    }
+    console.log('WebView message:', data);
+
+    switch (data.type) {
+      case 'AEROSYNC_OAUTH_URL':
+        if (data.url) openSecureOAuth(data.url);
+        break;
+      case 'BOARDING_COMPLETE':
+        navigation.replace('Wallet', { contact: data.contact ?? null });
+        break;
+      default:
+        break;
     }
   };
 
@@ -166,124 +149,228 @@ function PaymentWebViewScreen({ route, navigation }: { route: { params: { workfl
       <WebView
         source={{ uri: url }}
         style={styles.webview}
-        onMessage={onWebViewMessage}
+        onMessage={onMessage}
+        onLoadEnd={() => setLoading(false)}
       />
+      {loading && (
+        <View style={styles.webviewLoading}>
+          <ActivityIndicator size="large" color="#7c3aed" />
+        </View>
+      )}
     </View>
   );
 }
 
-export default function App() {
-  // Listen for deep links and log query params
+/* =========================================================================
+   Option 2 — Direct Sign-up (standalone InAppBrowser + webhook polling)
+========================================================================= */
+function DirectSignupScreen({ navigation }: { navigation: any }) {
+  const doneRef = useRef(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
-    const handleUrlString = (url: string) => {
-      try {
-        console.log('Deep link URL:', url);
-        const parsedUrl = new URL(url);
-        const params: Record<string, string> = Object.fromEntries(parsedUrl.searchParams.entries());
-        console.log('Deep link query params:', params);
+    // Correlates this run with the boarding the SPA reports to the webhook.
+    const sessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    const url = `${BASE_URL}/?sessionId=${encodeURIComponent(sessionId)}`;
+    console.log('[option2] opening', url);
 
-        // Branch by status and emit a typed structure
-        const status = params.status as string | undefined;
-        let deepLink: DeepLinkParams | undefined;
-        if (status === 'success') {
-          deepLink = {
-            status: 'success',
-            payload: {
-              connectionId: params.connectionId,
-              clientName: params.clientName,
-              aeroPassUserUuid: params.aeroPassUserUuid,
-            },
-          };
-          console.log('Deep link status: SUCCESS (typed)', deepLink);
-        } else if (status === 'error') {
-          deepLink = {
-            status: 'error',
-            payload: {
-              AC_CODE: params.AC_CODE,
-              description: params.description,
-            },
-          };
-          console.log('Deep link status: ERROR (typed)', deepLink);
-        } else if (status === 'close') {
-          deepLink = { status: 'close' };
-          console.log('Deep link status: CLOSE (typed)', deepLink);
-        } else {
-          console.log('Deep link status: UNKNOWN', status, params);
+    const finish = (contact: Contact) => {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+      console.log('[option2] boarded! contact =', contact);
+      InAppBrowser.close();
+      navigation.replace('Wallet', { contact });
+    };
+
+    const startPolling = () => {
+      pollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`${BASE_URL}/api/boarded/${sessionId}`);
+          const json = await res.json();
+          console.log('[option2] poll', sessionId, '->', json);
+          if (json.boarded) finish(json.contact ?? null);
+        } catch (err) {
+          console.warn('[option2] poll failed:', err);
         }
+      }, 1500);
+    };
 
-        // Navigate to Result screen with typed deepLink
-        if (deepLink) {
-          const nav = () => navigationRef.navigate('Result', { result: deepLink as DeepLinkParams });
-          if (navigationRef.isReady()) nav();
-          else setTimeout(() => { if (navigationRef.isReady()) nav(); }, 100);
+    const run = async () => {
+      try {
+        const available = await InAppBrowser.isAvailable();
+        startPolling();
+        if (available) {
+          // Resolves when the browser is dismissed (by us on success, or by the user).
+          await InAppBrowser.open(url, {
+            dismissButtonStyle: 'close',
+            animated: true,
+            modalEnabled: true,
+            enableBarCollapsing: true,
+            showTitle: true,
+            toolbarColor: Platform.OS === 'android' ? '#ffffff' : undefined,
+          });
+        } else {
+          Linking.openURL(url);
         }
       } catch (err) {
-        console.warn('Failed to parse deep link URL:', err);
+        console.warn('InAppBrowser.open failed:', err);
+      } finally {
+        // The browser was dismissed — often because boarding completed and the
+        // deep link woke the app (which also closes the tab). Do one final
+        // status check before falling back to Home, to avoid racing the poll.
+        if (!doneRef.current) {
+          if (pollRef.current) clearInterval(pollRef.current);
+          try {
+            const res = await fetch(`${BASE_URL}/api/boarded/${sessionId}`);
+            const json = await res.json();
+            console.log('[option2] final check ->', json);
+            if (json.boarded) {
+              finish(json.contact ?? null);
+              return;
+            }
+          } catch (err) {
+            console.warn('[option2] final check failed:', err);
+          }
+          navigation.goBack();
+        }
       }
     };
 
-    const handleDeepLink = ({ url }: { url: string }) => handleUrlString(url);
-
-    // Handle the initial URL if the app was opened via deep link
-    Linking.getInitialURL()
-      .then((initialUrl) => {
-        if (initialUrl) handleUrlString(initialUrl);
-      })
-      .catch((err) => console.warn('Error getting initial URL:', err));
-
-    // Subscribe to subsequent deep link events
-    const subscription: any = Linking.addEventListener('url', handleDeepLink);
+    run();
 
     return () => {
-      // RN versions differ in API, support both
-      if (subscription && typeof subscription.remove === 'function') {
-        subscription.remove();
-      } else {
-        // @ts-ignore - compat for older RN
-        Linking.removeEventListener?.('url', handleDeepLink);
-      }
+      if (pollRef.current) clearInterval(pollRef.current);
+      InAppBrowser.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <View style={styles.loading}>
+      <ActivityIndicator size="large" color="#7c3aed" />
+      <Text style={styles.loadingText}>Complete sign-up in the browser…</Text>
+    </View>
+  );
+}
+
+/* =========================================================================
+   Wallet / Success (shared)
+========================================================================= */
+function WalletScreen({ route, navigation }: { route: any; navigation: any }) {
+  const contact: Contact = route.params?.contact ?? null;
+
+  const Row = ({ k, v }: { k: string; v?: string }) =>
+    v ? (
+      <View style={styles.walletRow}>
+        <Text style={styles.walletKey}>{k}</Text>
+        <Text style={styles.walletVal} numberOfLines={2}>{v}</Text>
+      </View>
+    ) : null;
+
+  const hasAny = !!(contact && (contact.name || contact.email || contact.phone));
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.center}>
+        <View style={styles.successBadge}>
+          <Text style={{ fontSize: 34 }}>✅</Text>
+        </View>
+        <Text style={styles.title}>Account linked &amp; boarded</Text>
+        <Text style={styles.subtitle}>Your account is ready to use.</Text>
+
+        <View style={styles.walletCard}>
+          <Row k="Name" v={contact?.name} />
+          <Row k="Email" v={contact?.email} />
+          <Row k="Phone" v={contact?.phone} />
+          {!hasAny && <Text style={styles.walletVal}>No contact details provided.</Text>}
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.optionBtn, pressed && styles.pressed]}
+          onPress={() => navigation.popToTop()}
+        >
+          <Text style={styles.optionTitle}>Done</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+/* =========================================================================
+   App
+========================================================================= */
+export default function App() {
+  // Light deep-link logging for debugging (OAuth return is handled by openAuth).
+  useEffect(() => {
+    const log = (url: string | null) => url && console.log('Deep link:', url);
+    Linking.getInitialURL().then(log).catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => log(url));
+    return () => sub.remove();
   }, []);
 
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
-        <Stack.Screen
-          name="PaymentWebView"
-          component={PaymentWebViewScreen}
-          options={{ title: 'Payment' }}
-        />
-        <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Result' }} />
+        <Stack.Screen name="Launcher" component={LauncherScreen} options={{ title: 'AeroDonuts' }} />
+        <Stack.Screen name="EmbeddedWebView" component={EmbeddedWebViewScreen} options={{ title: 'Sign up' }} />
+        <Stack.Screen name="DirectSignup" component={DirectSignupScreen} options={{ title: 'Direct sign-up' }} />
+        <Stack.Screen name="Wallet" component={WalletScreen} options={{ title: 'Wallet', headerBackVisible: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
-  section: { width: '100%', marginTop: 12, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  donutImage: { width: 180, height: 180, borderRadius: 12, marginBottom: 16 },
-  radioGroup: { gap: 8 },
-  radioRow: { flexDirection: 'row', alignItems: 'center' },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#7c3aed',
+  title: { fontSize: 26, fontWeight: '800', marginBottom: 6, textAlign: 'center' },
+  subtitle: { fontSize: 15, color: '#64748b', marginBottom: 28, textAlign: 'center' },
+  donutImage: { width: 140, height: 140, borderRadius: 12, marginBottom: 12 },
+
+  optionBtn: {
+    width: '100%',
+    backgroundColor: '#7c3aed',
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  optionBtnAlt: { backgroundColor: '#0ea5e9' },
+  pressed: { opacity: 0.85 },
+  optionTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  optionSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4 },
+
+  webviewContainer: { flex: 1, backgroundColor: '#fff' },
+  webview: { flex: 1 },
+  webviewLoading: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    backgroundColor: '#fff',
   },
-  radioOuterSelected: { borderColor: '#6d28d9' },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6d28d9' },
-  radioLabel: { fontSize: 16 },
-  webviewContainer: { flex: 1, backgroundColor: '#000' },
-  webview: { flex: 1 },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#000' },
-  loadingText: { color: '#fff', marginTop: 12, fontSize: 16 },
+
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
+  loadingText: { color: '#334155', marginTop: 14, fontSize: 16 },
+
+  successBadge: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: 'rgba(22,163,74,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  walletCard: {
+    width: '100%',
+    backgroundColor: '#f4f5f7',
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 24,
+  },
+  walletRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, gap: 12 },
+  walletKey: { color: '#64748b', fontSize: 14, flexShrink: 0 },
+  walletVal: { color: '#0f172a', fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'right' },
 });
